@@ -1,6 +1,6 @@
 # PDF2Markdown
 
-A modern web application for converting PDF documents to Markdown format with a clean, responsive UI.
+A more or less modern web application for converting PDF documents to Markdown format with a clean, responsive UI.
 
 ![PDF2Markdown Screenshot](screenshot.png)
 
