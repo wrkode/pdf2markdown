@@ -1,24 +1,14 @@
-import React, { useState } from 'react';
-import { 
-  Box, 
-  Button, 
-  Text, 
-  VStack, 
-  Heading, 
-  useToast, 
-  Flex, 
-  Tabs, 
-  TabList, 
-  TabPanels, 
-  Tab, 
-  TabPanel,
-  Card,
-  CardBody
-} from '@chakra-ui/react';
+import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
-import { FaFileUpload, FaDownload, FaCheckCircle } from 'react-icons/fa';
+import { FaDownload, FaCheckCircle } from 'react-icons/fa';
 import ReactMarkdown from 'react-markdown';
+
+interface ToastMessage {
+  title: string;
+  description: string;
+  status: 'info' | 'warning' | 'success' | 'error';
+}
 
 const PdfConverter: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -26,36 +16,40 @@ const PdfConverter: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [converted, setConverted] = useState(false);
   const [filename, setFilename] = useState('');
-  
-  const toast = useToast();
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  const showToast = (message: ToastMessage) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles && acceptedFiles.length > 0) {
+      setFile(acceptedFiles[0]);
+      setConverted(false);
+      setMarkdown('');
+      setError(null);
+    }
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
     accept: {
       'application/pdf': ['.pdf']
     },
-    maxFiles: 1,
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles && acceptedFiles.length > 0) {
-        setFile(acceptedFiles[0]);
-        setConverted(false);
-        setMarkdown('');
-      }
-    }
+    maxFiles: 1
   });
 
   const handleConvert = async () => {
     if (!file) {
-      toast({
-        title: 'No file selected',
-        description: 'Please upload a PDF file first',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      setError('Please upload a PDF file first');
       return;
     }
 
     setLoading(true);
+    setError(null);
+    
     const formData = new FormData();
     formData.append('pdfFile', file);
 
@@ -70,23 +64,17 @@ const PdfConverter: React.FC = () => {
         setMarkdown(response.data.markdown);
         setFilename(response.data.filename);
         setConverted(true);
-        toast({
+        showToast({
           title: 'Conversion successful',
           description: 'Your PDF has been converted to Markdown',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
+          status: 'success'
         });
+      } else {
+        setError('Failed to convert PDF');
       }
     } catch (error) {
       console.error('Conversion error:', error);
-      toast({
-        title: 'Conversion failed',
-        description: 'There was an error converting your PDF',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      setError('An error occurred while converting the PDF');
     } finally {
       setLoading(false);
     }
@@ -105,133 +93,179 @@ const PdfConverter: React.FC = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    toast({
+    showToast({
       title: 'Download started',
       description: 'Your Markdown file is being downloaded',
-      status: 'info',
-      duration: 3000,
-      isClosable: true,
+      status: 'info'
     });
   };
 
   return (
-    <VStack spacing={8} align="stretch">
-      <Box textAlign="center">
-        <Heading size="xl" mb={2}>PDF to Markdown Converter</Heading>
-        <Text color="gray.600">Upload your PDF file and convert it to Markdown format</Text>
-      </Box>
+    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      {toast && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: '1rem',
+            right: '1rem',
+            padding: '1rem',
+            backgroundColor: toast.status === 'error' ? '#FED7D7' :
+                             toast.status === 'success' ? '#C6F6D5' :
+                             toast.status === 'warning' ? '#FEEBC8' : '#BEE3F8',
+            borderRadius: '0.375rem',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            zIndex: 1000,
+            maxWidth: '24rem'
+          }}
+        >
+          <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>{toast.title}</h3>
+          <p>{toast.description}</p>
+        </div>
+      )}
 
-      <Card variant="outline">
-        <CardBody>
-          <VStack spacing={6}>
-            <Box 
-              {...getRootProps()} 
-              w="100%" 
-              h="200px" 
-              border="2px dashed" 
-              borderColor={isDragActive ? "blue.400" : "gray.300"}
-              borderRadius="md"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              bg={isDragActive ? "blue.50" : "gray.50"}
-              transition="all 0.2s"
-              _hover={{ bg: "blue.50", borderColor: "blue.400" }}
-              cursor="pointer"
-              p={6}
-            >
-              <input {...getInputProps()} />
-              <VStack spacing={2}>
-                <FaFileUpload size={40} color={isDragActive ? "#3182CE" : "#A0AEC0"} />
-                <Text color="gray.600" fontWeight="medium">
-                  {isDragActive
-                    ? "Drop your PDF here..."
-                    : file
-                    ? `Selected: ${file.name}`
-                    : "Drag & drop your PDF here, or click to select"}
-                </Text>
-                {file && (
-                  <Text fontSize="sm" color="green.500" display="flex" alignItems="center">
-                    <FaCheckCircle style={{ marginRight: '5px' }} /> File selected
-                  </Text>
-                )}
-              </VStack>
-            </Box>
-
-            <Button 
-              colorScheme="blue" 
-              size="lg" 
-              leftIcon={<FaFileUpload />}
-              onClick={handleConvert}
-              isLoading={loading}
-              loadingText="Converting..."
-              isDisabled={!file || loading}
-              w={{ base: "100%", md: "auto" }}
-            >
-              Convert to Markdown
-            </Button>
-          </VStack>
-        </CardBody>
-      </Card>
+      <h2 style={{ textAlign: 'center', marginBottom: '2rem', fontSize: '2rem' }}>PDF to Markdown Converter</h2>
+      <p style={{ textAlign: 'center', marginBottom: '2rem', color: '#4A5568' }}>
+        Upload your PDF file and convert it to Markdown format
+      </p>
+      
+      <div style={{ 
+        maxWidth: '600px', 
+        margin: '0 auto', 
+        padding: '2rem', 
+        border: '1px solid #E2E8F0', 
+        borderRadius: '0.5rem',
+        backgroundColor: 'white'
+      }}>
+        <div 
+          {...getRootProps()} 
+          style={{ 
+            border: '2px dashed #CBD5E0',
+            borderRadius: '0.5rem',
+            padding: '3rem',
+            textAlign: 'center',
+            cursor: 'pointer',
+            marginBottom: '1rem',
+            backgroundColor: isDragActive ? '#EBF8FF' : '#F7FAFC'
+          }}
+        >
+          <input {...getInputProps()} />
+          <p>{isDragActive
+            ? "Drop your PDF here..."
+            : file
+            ? `Selected: ${file.name}`
+            : "Drag & drop your PDF here, or click to select"}
+          </p>
+          {file && (
+            <p style={{ color: '#38A169', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FaCheckCircle style={{ marginRight: '0.5rem' }} /> File selected
+            </p>
+          )}
+        </div>
+        
+        {error && (
+          <div style={{ 
+            backgroundColor: '#FED7D7', 
+            color: '#C53030', 
+            padding: '0.75rem', 
+            borderRadius: '0.25rem',
+            marginBottom: '1rem'
+          }}>
+            {error}
+          </div>
+        )}
+        
+        <button 
+          onClick={handleConvert}
+          disabled={!file || loading}
+          style={{
+            backgroundColor: '#3182CE',
+            color: 'white',
+            padding: '0.5rem 1rem',
+            borderRadius: '0.25rem',
+            border: 'none',
+            cursor: !file || loading ? 'not-allowed' : 'pointer',
+            width: '100%',
+            opacity: !file || loading ? '0.7' : '1',
+            fontWeight: 'bold'
+          }}
+        >
+          {loading ? 'Converting...' : 'Convert to Markdown'}
+        </button>
+      </div>
 
       {converted && (
-        <Card variant="outline">
-          <CardBody>
-            <VStack spacing={4} align="start">
-              <Flex justify="space-between" w="100%" align="center">
-                <Heading size="md">Conversion Result</Heading>
-                <Button 
-                  colorScheme="green" 
-                  leftIcon={<FaDownload />}
-                  onClick={handleDownload}
-                >
-                  Download Markdown
-                </Button>
-              </Flex>
-
-              <Tabs isFitted width="100%">
-                <TabList>
-                  <Tab>Preview</Tab>
-                  <Tab>Raw Markdown</Tab>
-                </TabList>
-                <TabPanels>
-                  <TabPanel>
-                    <Box 
-                      p={4} 
-                      borderWidth="1px" 
-                      borderRadius="md" 
-                      minH="300px" 
-                      maxH="500px"
-                      overflowY="auto"
-                      bg="white"
-                    >
-                      <ReactMarkdown>
-                        {markdown}
-                      </ReactMarkdown>
-                    </Box>
-                  </TabPanel>
-                  <TabPanel>
-                    <Box 
-                      p={4} 
-                      borderWidth="1px" 
-                      borderRadius="md" 
-                      minH="300px" 
-                      maxH="500px"
-                      overflowY="auto"
-                      bg="gray.50"
-                      fontFamily="mono"
-                      whiteSpace="pre-wrap"
-                    >
-                      {markdown}
-                    </Box>
-                  </TabPanel>
-                </TabPanels>
-              </Tabs>
-            </VStack>
-          </CardBody>
-        </Card>
+        <div style={{ 
+          maxWidth: '800px', 
+          margin: '2rem auto', 
+          padding: '2rem', 
+          border: '1px solid #E2E8F0', 
+          borderRadius: '0.5rem',
+          backgroundColor: 'white'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: '1rem'
+          }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Conversion Result</h3>
+            <button 
+              onClick={handleDownload}
+              style={{
+                backgroundColor: '#38A169',
+                color: 'white',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.25rem',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <FaDownload style={{ marginRight: '0.5rem' }} />
+              Download Markdown
+            </button>
+          </div>
+          
+          <div style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            marginBottom: '1rem'
+          }}>
+            <div style={{
+              display: 'flex',
+              borderBottom: '1px solid #E2E8F0'
+            }}>
+              <button 
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  borderBottom: '2px solid #3182CE',
+                  fontWeight: 'bold'
+                }}
+              >
+                Preview
+              </button>
+            </div>
+            
+            <div style={{ 
+              border: '1px solid #E2E8F0', 
+              borderTop: 'none',
+              borderRadius: '0 0 0.25rem 0.25rem',
+              padding: '1rem',
+              height: '400px',
+              overflowY: 'auto',
+              backgroundColor: 'white'
+            }}>
+              <ReactMarkdown>
+                {markdown}
+              </ReactMarkdown>
+            </div>
+          </div>
+        </div>
       )}
-    </VStack>
+    </div>
   );
 };
 

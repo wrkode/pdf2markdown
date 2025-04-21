@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: pdf2markdown-frontend:latest
+        image: ghcr.io/wrkode/pdf2markdown/pdf2markdown-frontend:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80

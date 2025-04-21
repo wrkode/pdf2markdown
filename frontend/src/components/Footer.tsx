@@ -1,32 +1,43 @@
 import React from 'react';
-import { Box, Container, Text, Link, Flex } from '@chakra-ui/react';
 import { FaGithub } from 'react-icons/fa';
 
 const Footer: React.FC = () => {
   return (
-    <Box as="footer" bg="gray.100" py={4} mt="auto">
-      <Container maxW="container.xl">
-        <Flex justify="space-between" align="center">
-          <Text fontSize="sm" color="gray.600">
-            &copy; {new Date().getFullYear()} PDF2Markdown
-          </Text>
-          <Flex gap={4}>
-            <Link 
-              href="https://github.com/pdf2markdown" 
-              target="_blank"
-              rel="noopener noreferrer"
-              display="flex" 
-              alignItems="center"
-              color="gray.600"
-              _hover={{ color: 'blue.500' }}
-            >
-              <FaGithub style={{ marginRight: '5px' }} />
-              <Text fontSize="sm">GitHub</Text>
-            </Link>
-          </Flex>
-        </Flex>
-      </Container>
-    </Box>
+    <footer style={{ 
+      backgroundColor: '#f1f1f1', 
+      padding: '1rem', 
+      marginTop: 'auto' 
+    }}>
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
+      }}>
+        <p style={{ fontSize: '0.875rem', color: '#4A5568' }}>
+          &copy; {new Date().getFullYear()} PDF2Markdown
+        </p>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <a 
+            href="https://github.com/pdf2markdown" 
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              color: '#4A5568',
+              textDecoration: 'none'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.color = '#3182CE'}
+            onMouseOut={(e) => e.currentTarget.style.color = '#4A5568'}
+          >
+            <FaGithub style={{ marginRight: '5px' }} />
+            <span style={{ fontSize: '0.875rem' }}>GitHub</span>
+          </a>
+        </div>
+      </div>
+    </footer>
   );
 };
 
