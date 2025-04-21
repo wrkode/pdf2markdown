@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdf2markdown-backend
+  labels:
+    app: pdf2markdown
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pdf2markdown
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: pdf2markdown
+        tier: backend
+    spec:
+      containers:
+      - name: backend
+        image: pdf2markdown-backend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+        env:
+        - name: PORT
+          value: "3000"
+        - name: NODE_ENV
+          value: "production"
+        - name: CORS_ORIGIN
+          value: "http://pdf2markdown.example.com"
+        - name: UPLOAD_LIMIT
+          value: "10mb"
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/uploads
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: uploads
+        # For production, you might want to use a persistent volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pdf2markdown-backend
+  labels:
+    app: pdf2markdown
+    tier: backend
+spec:
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: pdf2markdown
+    tier: backend 
